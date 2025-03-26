@@ -3,6 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <title>Plan Interactif - La Donaclaudré</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDMtB9Ju4h8JkYm8tkJdQIulF8_Kvf1cg",
+      authDomain: "plan-donaclaudre.firebaseapp.com",
+      databaseURL: "https://plan-donaclaudre-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "plan-donaclaudre",
+      storageBucket: "plan-donaclaudre.firebasestorage.app",
+      messagingSenderId: "607390903663",
+      appId: "1:607390903663:web:d6ac0d1cebed9be8480c9a",
+      measurementId: "G-839SS2SLP1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('plan-container');
+      const zones = document.querySelectorAll('.zone');
+
+      zones.forEach(zone => {
+        const zoneName = zone.getAttribute('data-name');
+        const contentBox = document.createElement('div');
+        contentBox.className = 'zone-content';
+        contentBox.style.top = zone.style.top;
+        contentBox.style.left = zone.style.left;
+        contentBox.style.width = zone.style.width;
+        contentBox.style.height = zone.style.height;
+        container.appendChild(contentBox);
+
+        const zoneRef = ref(db, 'zones/' + zoneName);
+
+        onValue(zoneRef, snapshot => {
+          contentBox.innerHTML = "";
+          const data = snapshot.val();
+          if (data) {
+            Object.values(data).forEach(initials => {
+              const div = document.createElement('div');
+              div.className = 'initiales';
+              div.innerText = initials;
+              contentBox.appendChild(div);
+            });
+          }
+        });
+
+        zone.addEventListener('click', () => {
+          const initials = prompt(`Entrez vos initiales pour ${zoneName}`);
+          if (initials && initials.trim()) {
+            push(zoneRef, initials.trim());
+          }
+        });
+      });
+    });
+  </script>
   <style>
     body {
       font-family: sans-serif;
@@ -20,8 +76,6 @@
     }
     .zone {
       position: absolute;
-      border: none;
-      background-color: transparent;
       cursor: pointer;
       z-index: 2;
     }
@@ -46,80 +100,14 @@
   </style>
 </head>
 <body>
-  <h2 style="text-align:center">Plan interactif - Cliquez sur une pièce pour y inscrire vos initiales</h2>
-  <div style="text-align: center; margin: 10px;">
-    <button onclick="demanderMotDePasse()">🔄 Réinitialiser toutes les inscriptions</button>
-  </div>
-
+  <h2 style="text-align:center">Plan interactif – Cliquez sur une chambre pour vous inscrire</h2>
   <div id="plan-container">
     <img id="plan-image" src="plan-image.jpg" alt="Plan du site">
-
-    <!-- Zones interactives : uniquement les chambres -->
     <div class="zone" data-name="Chambre 1" style="top: 350px; left: 55px; width: 185px; height: 160px;"></div>
     <div class="zone" data-name="Chambre 2" style="top: 350px; left: 310px; width: 130px; height: 160px;"></div>
     <div class="zone" data-name="Chambre 3" style="top: 530px; left: 55px; width: 155px; height: 160px;"></div>
     <div class="zone" data-name="Chambre 4" style="top: 530px; left: 310px; width: 130px; height: 160px;"></div>
     <div class="zone" data-name="Chambre 5" style="top: 560px; left: 220px; width: 77px; height: 135px;"></div>
-    <div class="zone" data-name="Chambre 6" style="top: 165px; left: 605px; width: 130px; height: 176px;"></div>
-    <div class="zone" data-name="Chambre 8" style="top: 350px; left: 457px; width: 97px; height: 160px;"></div>
-    <div class="zone" data-name="Chambre 9" style="top: 350px; left: 605px; width: 130px; height: 160px;"></div>
-    <div class="zone" data-name="Chambre 10" style="top: 570px; left: 457px; width: 97px; height: 120px;"></div>
-    <div class="zone" data-name="Chambre 11" style="top: 600px; left: 565px; width: 60px; height: 90px;"></div>
-    <div class="zone" data-name="Chambre 12" style="top: 530px; left: 640px; width: 90px; height: 160px;"></div>
-    <div class="zone" data-name="Chambre 13" style="top: 795px; left: 675px; width: 106px; height: 100px;"></div>
   </div>
-
-  <script>
-    window.onload = function () {
-      const sauvegarde = JSON.parse(localStorage.getItem("initialesParZone") || '{}');
-
-      document.querySelectorAll('.zone').forEach(zone => {
-        const name = zone.getAttribute('data-name');
-
-        const contentBox = document.createElement('div');
-        contentBox.className = 'zone-content';
-        contentBox.style.top = zone.style.top;
-        contentBox.style.left = zone.style.left;
-        contentBox.style.width = zone.style.width;
-        contentBox.style.height = zone.style.height;
-
-        const initialsList = sauvegarde[name] || [];
-        initialsList.forEach(init => {
-          const label = document.createElement('div');
-          label.className = 'initiales';
-          label.innerText = init;
-          contentBox.appendChild(label);
-        });
-
-        document.getElementById('plan-container').appendChild(contentBox);
-
-        zone.addEventListener('click', () => {
-          const initials = prompt(`Entrez vos initiales pour la zone : ${name}`);
-          if (initials) {
-            const label = document.createElement('div');
-            label.className = 'initiales';
-            label.innerText = initials;
-            contentBox.appendChild(label);
-
-            if (!sauvegarde[name]) sauvegarde[name] = [];
-            sauvegarde[name].push(initials);
-            localStorage.setItem("initialesParZone", JSON.stringify(sauvegarde));
-          }
-        });
-      });
-    };
-  </script>
-  <script>
-    function demanderMotDePasse() {
-      const motDePasseCorrect = "admin123";
-      const saisie = prompt("Entrez le mot de passe pour réinitialiser les inscriptions :");
-      if (saisie === motDePasseCorrect) {
-        localStorage.clear();
-        location.reload();
-      } else {
-        alert("Mot de passe incorrect. Réinitialisation annulée.");
-      }
-    }
-  </script>
 </body>
 </html>
